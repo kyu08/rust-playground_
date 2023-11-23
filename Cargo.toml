@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 colored = "2"
 fuzzy-matcher = "0.3.7"
+ratatui = "0.24.0"
+syntect = "5.1.0"
+syntect-tui = "2.0.0"

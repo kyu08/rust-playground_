@@ -1,26 +1,43 @@
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
+use ratatui::text::{Line, Span};
+use syntect::easy::HighlightLines;
+use syntect::highlighting::ThemeSet;
+use syntect::parsing::SyntaxSet;
+use syntect::util::LinesWithEndings;
+use syntect_tui::{self, translate_colour, translate_font_style}
 
 fn main() {
-    let matcher = SkimMatcherV2::default();
-    assert_eq!(None, matcher.fuzzy_match("abc", "abx"));
-    assert!(matcher.fuzzy_match("axbycz", "abc").is_some());
-    assert!(matcher.fuzzy_match("axbycz", "xyz").is_some());
-
-    print_score("axbycz", "abc");
-    print_score("axbycz", "axbycz");
-    print_score("axbycz", "JJJ");
-    print_score("run", "rn");
-    print_score("run-integration-test", "rit");
-    print_score("run-integration-test", "ruit");
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+    let syntax = ps.find_syntax_by_extension("rs").unwrap();
+    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+    let s = "pub struct Wow { hi: u64 }\nfn blah() -> u64 {}";
+    for line in LinesWithEndings::from(s) {
+        // LinesWithEndings enables use of newlines mode
+        let line_spans: Vec<Span> = h
+            .highlight_line(line, &ps)
+            .unwrap()
+            .into_iter()
+            .filter_map(|(style, content)| {
+                Ok(ratatui::text::Span::styled(
+                    String::from(content),
+                    translate_style(style),
+                ))
+            })
+            .collect();
+        let spans = Line::from(line_spans);
+        print!("{:?}", spans);
+    }
 }
 
-// こんなかんじでtarget一覧すべてに対してscoreを計算して降順で並べ替えればskimのようなことができそう
-fn print_score(s: &str, p: &str) {
-    let matcher = SkimMatcherV2::default();
-    let (score, indices) = match matcher.fuzzy_indices(s, p) {
-        Some((score, indices)) => (score, indices),
-        None => (0, vec![]),
-    };
-    println!("{}, {}: score:{}, indices: {:?}", s, p, score, indices);
+pub fn translate_style(
+    syntect_style: syntect::highlighting::Style,
+) -> ratatui::style::Style {
+    ratatui::style::Style {
+        fg: translate_colour(syntect_style.foreground),
+        bg: translate_colour(syntect_style.background),
+        underline_color: translate_colour(syntect_style.foreground),
+        add_modifier: translate_font_style(syntect_style.font_style).unwrap(),
+        sub_modifier: ratatui::style::Modifier::empty(),
+    }
 }
+
