@@ -3,8 +3,7 @@ fn main() {
     let value_b: Option<i32> = None;
 
     match (value_a, value_b) {
-        (Some(v), None) => println!("{}", v),
-        (None, Some(v)) => println!("{}", v),
+        (Some(v), None) | (None, Some(v)) => println!("{}", v),
         _ => println!("other"),
     }
 }
